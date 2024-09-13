@@ -9,7 +9,7 @@ from products.models import Product, Supplier
 
 class Stock(models.Model):
     product = models.ForeignKey(Product, on_delete=models.PROTECT, related_name='stocks_product')
-    supplier = models.ForeignKey(Supplier, on_delete=models.PROTECT, related_name='stocks_supplier')
+    supplier = models.ForeignKey(Supplier, on_delete=models.PROTECT, related_name='stocks_supplier',null=True)
     quantity_in_stock = models.IntegerField(default=0)
     minimum_stock_level = models.IntegerField(default=0)
     maximum_stock_level = models.IntegerField(default=50)
@@ -35,6 +35,7 @@ class Transaction(models.Model):
     bill_no = models.CharField(unique=True,max_length=100)
     transaction_date = models.DateTimeField(auto_now_add=True)
     notes = models.TextField(default='')
+    total_amount = models.DecimalField(max_digits=12,decimal_places=2,default=0)
 
 class TransactionItem(models.Model):
     product = models.ForeignKey(Product, on_delete=models.PROTECT, related_name='transaction_product')

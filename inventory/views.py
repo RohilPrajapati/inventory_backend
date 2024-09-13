@@ -58,9 +58,15 @@ class TransactionListView(APIView):
 
     def post(self,request):
         serializer = CreateTransaction(data=request.data)
+        print(request.data)
         if serializer.is_valid(raise_exception=True):
-            # purchase -> stock update
-            # sales -> stock update
+            if serializer.validated_data['transaction_type'] == 1:
+                # purchase -> stock update
+                serializer.handle_purchase(serializer.validated_data)
+            elif serializer.validated_data['transaction_type'] == 2:
+                # sales -> stock update
+                ...
+            # TODO 
             # purchase return -> stock update
             # sales return -> stock update
             # serializer.save()
