@@ -20,6 +20,7 @@ class Stock(models.Model):
     aisle = models.CharField(max_length=100, default='')
     shelf = models.CharField(max_length=100, default='')
     bin = models.BooleanField(default=False)
+    updated_date = models.DateTimeField(null=True)
 
 class TransactionType(models.Model):
     name = models.CharField(max_length=100, unique=True)

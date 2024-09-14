@@ -4,6 +4,7 @@ from rest_framework import status
 from rest_framework.response import Response
 from .models import Stock, Transaction, TransactionItem,TransactionType
 from .serializers import *
+from backend.paginations import PagePaginationCustom
 
 
 class TransactionTypeListView(APIView):
@@ -44,7 +45,7 @@ class InventoryListView(APIView):
         serializer = StockModelSerializer(stock, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
-class TransactionListView(APIView):
+class TransactionListView(APIView,PagePaginationCustom):
     def get(self, request):
         search = request.GET.get('search',None)
         transaction_type = request.GET.get('transaction_type',None)
@@ -55,23 +56,24 @@ class TransactionListView(APIView):
             transaction = transaction.filter(product__name__icontains=search) | \
                     transaction.filter(supplier__name__icontains=search) | \
                 transaction.filter(transaction_type__name__icontains=search)
-        serializer = TransactionModelSerializer(transaction, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        result = self.paginate_queryset(transaction, request)
+        serializer = TransactionModelSerializer(result, many=True)
+        return self.get_paginated_response(serializer.data)
+    
 
+class CreatePurchaseView(APIView):
     def post(self,request):
-        serializer = CreateTransaction(data=request.data)
+        serializer = CreatePurchaseTransactionSerializer(data=request.data)
+        if serializer.is_valid(raise_exception=True):
+            serializer.handle_purchase(serializer.validated_data)
+            return Response({"message":"Testing"},status=status.HTTP_201_CREATED)
+        
+class CreateSalesView(APIView):
+    def post(self,request):
+        serializer = CreateSalesTransactionSerializer(data=request.data)
         print(request.data)
         if serializer.is_valid(raise_exception=True):
-            if serializer.validated_data['transaction_type'] == 1:
-                # purchase -> stock update
-                serializer.handle_purchase(serializer.validated_data)
-            elif serializer.validated_data['transaction_type'] == 2:
-                # sales -> stock update
-                ...
-            # TODO 
-            # purchase return -> stock update
-            # sales return -> stock update
-            # serializer.save()
+            serializer.handle_sales(serializer.validated_data)
             return Response({"message":"Testing"},status=status.HTTP_201_CREATED)
 
 
