@@ -48,12 +48,14 @@ class TransactionListView(APIView):
     def get(self, request):
         search = request.GET.get('search',None)
         transaction_type = request.GET.get('transaction_type',None)
-        transaction = Transaction.objects.select_related('transaction_items')
+        transaction = Transaction.objects.prefetch_related('transaction_items')
+        if transaction_type:
+            transaction = transaction.filter(transaction_type=transaction_type)
         if search is not None:
             transaction = transaction.filter(product__name__icontains=search) | \
                     transaction.filter(supplier__name__icontains=search) | \
                 transaction.filter(transaction_type__name__icontains=search)
-        serializer = TransactionTypeModelSerializer(transaction_type, many=True)
+        serializer = TransactionModelSerializer(transaction, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     def post(self,request):

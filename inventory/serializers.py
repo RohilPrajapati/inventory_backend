@@ -20,7 +20,7 @@ class TransactionItemModelSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 class TransactionModelSerializer(serializers.ModelSerializer):
-    transaction_item = TransactionItemModelSerializer()
+    transaction_items = TransactionItemModelSerializer(many=True,read_only=True)
     class Meta:
         model = Transaction
         fields = '__all__'
