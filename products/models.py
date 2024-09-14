@@ -1,6 +1,6 @@
 from django.db import models
 from phonenumber_field.modelfields import PhoneNumberField
-from datetime import datetime
+from django.utils import timezone
 from users.models import User
 
 
@@ -36,9 +36,9 @@ class Product(models.Model):
     description = models.TextField(null=True)
     sku = models.CharField(max_length=50, unique=True, null=True)
     upc = models.CharField(max_length=50, unique=True, null=True)
-    created_date = models.DateTimeField(default=datetime.now)
+    created_date = models.DateTimeField(default=timezone.now)
     created_by = models.ForeignKey(User, on_delete=models.DO_NOTHING,null=True,blank=True)
-    updated_date = models.DateTimeField(default=datetime.now)
+    updated_date = models.DateTimeField(default=timezone.now)
     weight = models.IntegerField(null=True)
     dimensions = models.CharField(null=True)
     color = models.CharField(null=True, blank=True)
