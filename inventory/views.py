@@ -76,13 +76,23 @@ class CreatePurchaseView(APIView):
 class CreateSalesView(APIView):
     def post(self,request):
         serializer = CreateSalesTransactionSerializer(data=request.data)
-        print(request.data)
         if serializer.is_valid(raise_exception=True):
-            serializer.handle_sales(serializer.validated_data)
-            response = {
-                "message":"Create Sales successfully !"
-            }
-            return Response(response,status=status.HTTP_201_CREATED)
+            try:
+                serializer.handle_sales(serializer.validated_data)
+                response = {
+                    "message":"Create Sales successfully !"
+                }
+                return Response(response,status=status.HTTP_201_CREATED)
+            except ValueError as ve:
+                response = {
+                    "message":f"{ve}"
+                }
+                return Response(response,status=status.HTTP_400_BAD_REQUEST)
+            except Exception as e:
+                response = {
+                    "message":"Something went wrong. Working on it !"
+                }
+                return Response(response,status=status.HTTP_400_BAD_REQUEST)
 
 
 

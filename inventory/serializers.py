@@ -151,7 +151,7 @@ class CreateSalesTransactionSerializer(serializers.Serializer):
                     stock = get_object_or_404(Stock,id=item_data['stock'])
                     # validate if the stock with order qty:
                     if stock.quantity_in_stock < item_data['qty']:
-                        ValueError("Stock quantity is less then order quantity")
+                        raise ValueError("Stock quantity is less then order quantity")
 
                     stock.quantity_in_stock -= item_data['qty']
                     stock.updated_date = timezone.now()
@@ -165,6 +165,7 @@ class CreateSalesTransactionSerializer(serializers.Serializer):
                         price=stock.sales_price
                     ))
                     total_amount += stock.sales_price
+                # TODO updateing stock will update date for all the stock need to fix it
                 Stock.objects.bulk_update(stock_updates, ['quantity_in_stock', 'purchase_price','updated_date'])
                 # Bulk create transaction items
                 TransactionItem.objects.bulk_create(transaction_items)
@@ -173,5 +174,7 @@ class CreateSalesTransactionSerializer(serializers.Serializer):
                 transaction.save()
                 
                 return transaction
+        except ValueError as ve:
+            raise ve
         except Exception as e:
             raise Exception("Sales Transaction Fail !")
