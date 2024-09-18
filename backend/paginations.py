@@ -4,7 +4,7 @@ from collections import OrderedDict
 from rest_framework.utils.urls import replace_query_param
 
 class PagePaginationCustom(pagination.PageNumberPagination):
-    page_size = 10
+    page_size = 100
     page_size_query_param = 'page_size'
 
     def get_paginated_response(self, data):

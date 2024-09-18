@@ -2,12 +2,13 @@ from rest_framework import serializers
 from django.utils import timezone
 from inventory.models import Stock, Transaction, TransactionItem, TransactionType
 from django.db import transaction as db_transaction
-
+from django.shortcuts import get_object_or_404
 
 class StockModelSerializer(serializers.ModelSerializer):
     class Meta:
         model = Stock
         fields = '__all__'
+        depth = 1
 
 class TransactionTypeModelSerializer(serializers.ModelSerializer):
     class Meta:
@@ -27,9 +28,13 @@ class TransactionModelSerializer(serializers.ModelSerializer):
 
 class CreateTransactionItem(serializers.Serializer):
     product = serializers.IntegerField()
-    stock = serializers.IntegerField(required=False,allow_null=True)
     qty = serializers.IntegerField()
     price = serializers.DecimalField(max_digits=12,decimal_places=2)
+
+class CreateSalesTransactionItem(serializers.Serializer):
+    product = serializers.IntegerField()
+    stock = serializers.IntegerField(required=False,allow_null=True)
+    qty = serializers.IntegerField()
 
 class CreatePurchaseTransactionSerializer(serializers.Serializer):
     transaction_item = serializers.ListField(child=CreateTransactionItem(),allow_empty=False)
@@ -111,7 +116,7 @@ class CreatePurchaseTransactionSerializer(serializers.Serializer):
             raise Exception("Purchase Transaction Fail !")
 
 class CreateSalesTransactionSerializer(serializers.Serializer):
-    transaction_item = serializers.ListField(child=CreateTransactionItem(),allow_empty=False)
+    transaction_item = serializers.ListField(child=CreateSalesTransactionItem(),allow_empty=False)
     transaction_type = serializers.IntegerField()
     notes = serializers.CharField()
 
@@ -128,42 +133,39 @@ class CreateSalesTransactionSerializer(serializers.Serializer):
                     if last_trans_obj.transaction_date.year != current_year:
                         order_no = 1
                 bill_no = f"SL/{current_year}/"+ "%05d" % order_no 
-                # TODO complete sales
+
                 transaction = Transaction.objects.create(
                         transaction_type_id = validated_data['transaction_type'],
                         order_no = order_no,
-                        transaction_no = validated_data['transaction_no'],
                         bill_no = bill_no,
                         notes = validated_data['notes']
                     )
                 
                 transaction_items = []
-                stock_updates = []  
-                
-                # for items create bulk save()
-                for item_data in validated_data['transaction_item']:
-                    # Get First stock
-                    stock = Stock.objects.filter(product=item_data['product'], supplier=validated_data['supplier']).order_by('updated_date').first()
-
-                    if stock and validated_data['is_restock']:
-                        # Update stock with the purchased quantity
-                        stock.quantity_in_stock -= item_data['qty']
-                        stock_updates.append(stock)  # Add to update list
-
-                # Bulk create or update stock records
-                Stock.objects.bulk_update(stock_updates, ['quantity_in_stock', 'purchase_price'])
+                stock_updates = []
 
                 total_amount = 0
                 for item_data in validated_data['transaction_item']:
                     # Create a TransactionItem and append to the list
+
+                    stock = get_object_or_404(Stock,id=item_data['stock'])
+                    # validate if the stock with order qty:
+                    if stock.quantity_in_stock < item_data['qty']:
+                        ValueError("Stock quantity is less then order quantity")
+
+                    stock.quantity_in_stock -= item_data['qty']
+                    stock.updated_date = timezone.now()
+                    stock_updates.append(stock)
+
                     transaction_items.append(TransactionItem(
                         product_id=item_data['product'],
                         transaction=transaction,
                         stock=stock,
                         qty=item_data['qty'],
-                        price=item_data['price']
+                        price=stock.sales_price
                     ))
-                    total_amount += item_data['price']
+                    total_amount += stock.sales_price
+                Stock.objects.bulk_update(stock_updates, ['quantity_in_stock', 'purchase_price','updated_date'])
                 # Bulk create transaction items
                 TransactionItem.objects.bulk_create(transaction_items)
 

@@ -11,7 +11,7 @@ class Stock(models.Model):
     product = models.ForeignKey(Product, on_delete=models.PROTECT, related_name='stocks_product')
     supplier = models.ForeignKey(Supplier, on_delete=models.PROTECT, related_name='stocks_supplier',null=True)
     quantity_in_stock = models.IntegerField(default=0)
-    minimum_stock_level = models.IntegerField(default=0)
+    minimum_stock_level = models.IntegerField(default=10)
     maximum_stock_level = models.IntegerField(default=50)
     purchase_price = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     sales_price = models.DecimalField(max_digits=12, decimal_places=2, default=0)
