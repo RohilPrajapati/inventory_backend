@@ -19,12 +19,14 @@ class TransactionItemModelSerializer(serializers.ModelSerializer):
     class Meta:
         model = TransactionItem
         fields = '__all__'
+        depth = 1   
 
 class TransactionModelSerializer(serializers.ModelSerializer):
     transaction_items = TransactionItemModelSerializer(many=True,read_only=True)
     class Meta:
         model = Transaction
         fields = '__all__'
+        depth = 1
 
 class CreateTransactionItem(serializers.Serializer):
     product = serializers.IntegerField()
@@ -103,8 +105,10 @@ class CreatePurchaseTransactionSerializer(serializers.Serializer):
                         stock=stock,
                         qty=item_data['qty'],
                         price=item_data['price']
+                        
                     ))
-                    total_amount += item_data['price']
+                    amount = item_data['qty'] * item_data['price']
+                    total_amount += amount
                 # Bulk create transaction items
                 TransactionItem.objects.bulk_create(transaction_items)
 
