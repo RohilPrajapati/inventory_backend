@@ -93,8 +93,3 @@ class CreateSalesView(APIView):
                     "message":"Something went wrong. Working on it !"
                 }
                 return Response(response,status=status.HTTP_400_BAD_REQUEST)
-
-
-
-
-

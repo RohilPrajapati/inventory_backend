@@ -61,6 +61,7 @@ class CreatePurchaseTransactionSerializer(serializers.Serializer):
                 bill_no = f"PR/{current_year}/"+ "%05d" % order_no 
                 transaction = Transaction.objects.create(
                         transaction_type_id = 1,
+                        supplier_id = validated_data['supplier'],
                         order_no = order_no,
                         transaction_no = validated_data['transaction_no'],
                         bill_no = bill_no,

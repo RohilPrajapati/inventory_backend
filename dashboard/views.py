@@ -8,3 +8,7 @@ class DashboardView(APIView):
     def get(self, request):
         response = get_dashboard_data()
         return Response(response,status=status.HTTP_200_OK)
+    
+class DataForTransactionGraph(APIView):
+    def get(self,request):
+        ...
