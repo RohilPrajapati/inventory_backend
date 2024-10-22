@@ -1,4 +1,4 @@
-from rest_framework.generics import get_object_or_404
+from django.shortcuts import get_object_or_404,get_list_or_404
 from rest_framework.views import APIView
 from rest_framework import status
 from rest_framework.response import Response
@@ -45,6 +45,12 @@ class InventoryListView(APIView,PagePaginationCustom):
         result = self.paginate_queryset(stock, request)
         serializer = StockModelSerializer(result, many=True)
         return self.get_paginated_response(serializer.data)
+
+class ProductWiseInventoryView(APIView):
+    def get(self,request,product_id):
+        stock = get_list_or_404(Stock,product_id=product_id)
+        serializer = StockModelSerializer(stock,many=True)
+        return Response(serializer.data,status=status.HTTP_200_OK)
 
 class TransactionListView(APIView,PagePaginationCustom):
     def get(self, request):
