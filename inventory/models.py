@@ -30,7 +30,7 @@ class TransactionType(models.Model):
 
 class Transaction(models.Model):
     transaction_type = models.ForeignKey(TransactionType, on_delete=models.PROTECT, related_name="transaction")
-    supplier = models.ForeignKey(Supplier,on_delete = models.PROTECT)
+    supplier = models.ForeignKey(Supplier, on_delete = models.PROTECT, null=True)
     transaction_uuid = models.UUIDField(default=uuid.uuid4, editable=False)
     transaction_no = models.CharField(max_length=100,null=True)
     order_no = models.IntegerField(default=0)

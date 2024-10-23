@@ -75,3 +75,12 @@ class ProductDetailView(APIView):
                 'message': 'Please Contact Administration'
             }
             return Response(response, status=status.HTTP_200_OK)
+        
+class FetchProductWithStock(APIView):
+    def get(self,request):
+        product = Product.objects.filter(stocks_product__quantity_in_stock__gt = 0 ).distinct()
+        serializer = ProductModelSerializer(product,many=True)
+        response = {
+            'data': serializer.data
+        }
+        return Response(response,status=status.HTTP_200_OK)

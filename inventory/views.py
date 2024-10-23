@@ -5,7 +5,8 @@ from rest_framework.response import Response
 from .models import Stock, Transaction, TransactionItem,TransactionType
 from .serializers import *
 from backend.paginations import PagePaginationCustom
-
+from django.utils import timezone
+from datetime import datetime
 
 class TransactionTypeListView(APIView):
     def get(self, request):
@@ -54,19 +55,33 @@ class ProductWiseInventoryView(APIView):
 
 class TransactionListView(APIView,PagePaginationCustom):
     def get(self, request):
-        search = request.GET.get('search',None)
-        transaction_type = request.GET.get('transaction_type',None)
-        transaction = Transaction.objects.prefetch_related('transaction_items')
-        if transaction_type:
-            transaction = transaction.filter(transaction_type=transaction_type)
-        if search is not None:
-            transaction = transaction.filter(product__name__icontains=search) | \
-                    transaction.filter(supplier__name__icontains=search) | \
-                transaction.filter(transaction_type__name__icontains=search)
-        transaction = transaction.order_by('-transaction_date')
-        result = self.paginate_queryset(transaction, request)
-        serializer = TransactionModelSerializer(result, many=True)
-        return self.get_paginated_response(serializer.data)
+        try:
+            current_date = timezone.now().date().strftime('%Y-%m-%d')
+            search = request.GET.get('search',None)
+            transaction_type = request.GET.get('transaction_type',None)
+            from_date_str = request.GET.get('from_date',current_date)
+            to_date_str = request.GET.get('to_date',current_date)
+            from_date = datetime.strptime(from_date_str, '%Y-%m-%d').date()
+            to_date = datetime.strptime(to_date_str, '%Y-%m-%d').date()
+            print(from_date)
+            print(to_date)
+            transaction = Transaction.objects.prefetch_related('transaction_items')
+            if transaction_type:
+                transaction = transaction.filter(transaction_type=transaction_type)
+            
+            transaction = transaction.filter(transaction_date__date__gte = from_date, transaction_date__date__lte = to_date)
+                
+            if search is not None:
+                transaction = transaction.filter(product__name__icontains=search) | \
+                        transaction.filter(supplier__name__icontains=search) | \
+                    transaction.filter(transaction_type__name__icontains=search)
+            transaction = transaction.order_by('-transaction_date')
+            result = self.paginate_queryset(transaction, request)
+            serializer = TransactionModelSerializer(result, many=True)
+            return self.get_paginated_response(serializer.data)
+        except (ValueError, TypeError) as e:
+            return Response({'error': 'Invalid date format. Please provide valid dates.'}, status=400)
+
     
 
 class CreatePurchaseView(APIView):
@@ -95,6 +110,7 @@ class CreateSalesView(APIView):
                 }
                 return Response(response,status=status.HTTP_400_BAD_REQUEST)
             except Exception as e:
+                print(e)
                 response = {
                     "message":"Something went wrong. Working on it !"
                 }

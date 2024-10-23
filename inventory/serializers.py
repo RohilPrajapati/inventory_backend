@@ -37,6 +37,7 @@ class CreateSalesTransactionItem(serializers.Serializer):
     product = serializers.IntegerField()
     stock = serializers.IntegerField(required=False,allow_null=True)
     qty = serializers.IntegerField()
+    price = serializers.DecimalField(max_digits=10,decimal_places=2)
 
 class CreatePurchaseTransactionSerializer(serializers.Serializer):
     transaction_item = serializers.ListField(child=CreateTransactionItem(),allow_empty=False)
@@ -122,13 +123,12 @@ class CreatePurchaseTransactionSerializer(serializers.Serializer):
 
 class CreateSalesTransactionSerializer(serializers.Serializer):
     transaction_item = serializers.ListField(child=CreateSalesTransactionItem(),allow_empty=False)
-    transaction_type = serializers.IntegerField()
     notes = serializers.CharField()
 
     def handle_sales(self,validated_data):
         try:
             with db_transaction.atomic():
-                last_trans_objects = Transaction.objects.filter(transaction_type = validated_data['transaction_type']).order_by('order_no')
+                last_trans_objects = Transaction.objects.filter(transaction_type = 2).order_by('order_no')
                 current_year = timezone.now().year
                 if not last_trans_objects:
                     order_no = 1
@@ -140,7 +140,7 @@ class CreateSalesTransactionSerializer(serializers.Serializer):
                 bill_no = f"SL/{current_year}/"+ "%05d" % order_no 
 
                 transaction = Transaction.objects.create(
-                        transaction_type_id = validated_data['transaction_type'],
+                        transaction_type_id = 2,
                         order_no = order_no,
                         bill_no = bill_no,
                         notes = validated_data['notes']
@@ -167,9 +167,9 @@ class CreateSalesTransactionSerializer(serializers.Serializer):
                         transaction=transaction,
                         stock=stock,
                         qty=item_data['qty'],
-                        price=stock.sales_price
+                        price=item_data['price']
                     ))
-                    total_amount += stock.sales_price
+                    total_amount += item_data['price']
                 # TODO updateing stock will update date for all the stock need to fix it
                 Stock.objects.bulk_update(stock_updates, ['quantity_in_stock', 'purchase_price','updated_date'])
                 # Bulk create transaction items
@@ -182,4 +182,5 @@ class CreateSalesTransactionSerializer(serializers.Serializer):
         except ValueError as ve:
             raise ve
         except Exception as e:
+            print(e)
             raise Exception("Sales Transaction Fail !")

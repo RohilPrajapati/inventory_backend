@@ -4,6 +4,7 @@ from .views import views_supplier,views_brand,views_category,views_product
 
 urlpatterns = [
     path('', views_product.ProductListView.as_view(),name='product_list'),
+    path('stock/', views_product.FetchProductWithStock.as_view(),name='product_list_with_stock'),
     path('<int:pk>/', views_product.ProductDetailView.as_view(), name='product_detail'),
     path('brand/', views_brand.BrandListView.as_view(),name='brand_list'),
     path('brand/<int:pk>/', views_brand.BrandDetailView.as_view(), name='brand_detail'),
