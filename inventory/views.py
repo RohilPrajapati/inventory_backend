@@ -49,7 +49,7 @@ class InventoryListView(APIView,PagePaginationCustom):
 
 class ProductWiseInventoryView(APIView):
     def get(self,request,product_id):
-        stock = get_list_or_404(Stock,product_id=product_id)
+        stock = Stock.objects.filter(product_id=product_id, quantity_in_stock__gt = 0)
         serializer = StockModelSerializer(stock,many=True)
         return Response(serializer.data,status=status.HTTP_200_OK)
 
