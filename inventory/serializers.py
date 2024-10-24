@@ -43,7 +43,7 @@ class CreatePurchaseTransactionSerializer(serializers.Serializer):
     transaction_item = serializers.ListField(child=CreateTransactionItem(),allow_empty=False)
     supplier = serializers.IntegerField(required=False) #required for purchase only
     transaction_no = serializers.CharField() # purchase bill number if it exists
-    notes = serializers.CharField()
+    notes = serializers.CharField(allow_blank=True,allow_null=True)
     is_restock = serializers.BooleanField(default=False)
 
     def handle_purchase(self,validated_data):
@@ -123,7 +123,7 @@ class CreatePurchaseTransactionSerializer(serializers.Serializer):
 
 class CreateSalesTransactionSerializer(serializers.Serializer):
     transaction_item = serializers.ListField(child=CreateSalesTransactionItem(),allow_empty=False)
-    notes = serializers.CharField()
+    notes = serializers.CharField(allow_blank=True,allow_null=True)
 
     def handle_sales(self,validated_data):
         try:
