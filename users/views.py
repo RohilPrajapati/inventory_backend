@@ -6,7 +6,7 @@ from django.contrib.auth.hashers import check_password, make_password
 
 from backend.permissions import IsAdminUser
 from .tokens import get_token, decode_token
-from .serializers import UserSerializer, RoleSerializer, AddPermissionSerializer, RolePermissionsModelSerializer,PermissionsModelSerializer, UserLoginSerializer,UserListModelSerailizer,ChangePasswordSerializer
+from .serializers import UserSerializer, RoleSerializer, AddPermissionSerializer, RolePermissionsModelSerializer,PermissionsModelSerializer, UserLoginSerializer,UserListModelSerializer,ChangePasswordSerializer
 from backend.paginations import PagePaginationCustom
 from django.http.response import Http404
 from django.db.models import ProtectedError
@@ -23,19 +23,15 @@ class LoginView(APIView):
     def post(self, request):
         serializer = UserLoginSerializer(data=request.data)
         if serializer.is_valid(raise_exception=True):
-
+            users = User.objects.filter(email=serializer.validated_data['email'])
             # checking if the user exist or not
-            if not User.objects.filter(email=serializer.validated_data['email']).exists():
-                if not User.objects.filter(username=serializer.validated_data['email']).exists():
-                    return Response("Invalid User", status=status.HTTP_401_UNAUTHORIZED)
+            if not users.exists():
+                return Response("Invalid User", status=status.HTTP_401_UNAUTHORIZED)
 
             # extacting the data
-            try:
-                user = User.objects.get(email=serializer.validated_data['email'])
-            except User.DoesNotExist:
-                user = User.objects.get(username=serializer.validated_data['email'])
-            password = serializer.validated_data['password']
+            user = users.first()
 
+            password = serializer.validated_data['password']
             # checking if the password is wrong or not
             if not check_password(password, user.password):
                 return Response("Invalid Password", status=status.HTTP_401_UNAUTHORIZED)
@@ -49,32 +45,47 @@ class UserRegistration(APIView):
     permission_classes = [IsAdminUser]
 
     def post(self, request):
-
+        # Deserialize request data
         serializer = UserSerializer(data=request.data)
         if serializer.is_valid(raise_exception=True):
-            # serializer.save(serializer.validated_data['role_id'],serializer.validated_data['email'],serializer.validated_data['password'])
-            try:
-                User.objects.get(email=serializer.validated_data['username'])
-                return Response('Username cannot be an existing email!')
-            except User.DoesNotExist:
-                pass
-            if not User.objects.filter(email=serializer.validated_data['email']).exists():
-                if not User.objects.filter(username=serializer.validated_data['username']).exists():
-                    password = serializer.validated_data['password']
-                    h_password = make_password(password, salt=None, hasher='default')
-                    role = Role.objects.get(role_id=serializer.validated_data['role_id'])
-                    user = User(role_id=role, username=serializer.validated_data['username'],
-                                email=serializer.validated_data['email'], password=h_password)
-                    user.save()
-                    response = {
-                        'message': 'User has been register',
-                        'data': serializer.data
-                    }
-                    return Response(response, status=status.HTTP_201_CREATED)
+            email = serializer.validated_data['email']
+            username = serializer.validated_data['username']
+
+            # Use Q to combine email and username checks in one query
+            existing_user = User.objects.filter(Q(email=email) | Q(username=username)).first()
+
+            if existing_user:
+                response = {
+                    'message': 'User with this email or username already exists'
+                }
+                return Response(response, status=status.HTTP_400_BAD_REQUEST)
+
+            # Prepare password
+            password = serializer.validated_data['password']
+            h_password = make_password(password)
+
+            # Handle role assignment with get_or_create (avoids a query if it exists)
+            role_id = serializer.validated_data.get('role_id')
+            role = None
+            if role_id:
+                role, created = Role.objects.get_or_create(id=role_id)
+
+            # Create user object
+            user = User(
+                role=role,
+                username=username,
+                email=email,
+                is_admin=serializer.validated_data.get('is_admin', False),
+                password=h_password
+            )
+            user.save()
+
+            # Return response with user data
             response = {
-                'message': 'User is already register'
+                'message': 'User has been registered',
+                'data': UserListModelSerializer(user).data
             }
-            return Response(response, status=status.HTTP_400_BAD_REQUEST)
+            return Response(response, status=status.HTTP_201_CREATED)
 
 
 class UserListView(APIView,PagePaginationCustom):
@@ -86,7 +97,7 @@ class UserListView(APIView,PagePaginationCustom):
                    user.filter(email__icontains=search) | \
                    user.filter(role_id__name__icontains=search)
         data = self.paginate_queryset(user, request)
-        serializer = UserListModelSerailizer(data, many=True)
+        serializer = UserListModelSerializer(data, many=True)
         return self.get_paginated_response(serializer.data)
 
 
